@@ -1,70 +1,107 @@
 package ru.netology.test;
 
-import com.codeborne.selenide.Condition;
-import lombok.val;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import ru.netology.data.DataHelper;
 import ru.netology.page.DashboardPage;
 import ru.netology.page.LoginPage;
 
-import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Selenide.open;
-import static com.codeborne.selenide.Selenide.sleep;
 import static org.junit.jupiter.api.Assertions.*;
 
+class MoneyTransferTest {
 
-public class MoneyTransferTest {
-    int begBalance1;
-    int begBalance2;
-    int endBalance1;
-    int endBalance2;
-    int sum;
-    DashboardPage dashboardPage;
-
-    @BeforeEach
-    void SetUp() {
+    @BeforeAll
+    public static void loginToPersonalAccount() {
         open("http://localhost:9999");
-        val loginPage = new LoginPage();
-        val authInfo = DataHelper.getAuthInfo();
-        val verificationPage = loginPage.validLogin(authInfo);
-        val verificationCode = DataHelper.getVerificationCodeFor(authInfo);
-        dashboardPage = verificationPage.validVerify(verificationCode);
-        begBalance1 = dashboardPage.getBalance(dashboardPage.card1);
-        begBalance2 = dashboardPage.getBalance(dashboardPage.card2);
+        var loginPage = new LoginPage();
+        var authInfo = DataHelper.getUserAuthInfo();
+        var verificationPage = loginPage.validLogin(authInfo);
+        var verificationCode = DataHelper.getVerificationCodeFor();
+        verificationPage.validVerify(verificationCode);
     }
 
-    @Test
-
-    void testShouldTransferMoneyFromSecondToFirstCard() {
-        sum = 100;
-        var topUpPage = dashboardPage.clickTopUp(dashboardPage.card1);
-        var cardNum = DataHelper.getSecondCard().getNumber();
-        var dashboardPage2 = topUpPage.successfulTopUp(Integer.toString(sum), cardNum);
-        endBalance1 = dashboardPage2.getBalance(dashboardPage2.card1);
-        endBalance2 = dashboardPage2.getBalance(dashboardPage2.card2);
-        assertEquals(begBalance1 + sum, endBalance1);
-        assertEquals(begBalance2 - sum, endBalance2);
+    @Test   //Перевод со второй карты на первую
+    public void shouldTransferFromSecondToFirst() {
+        //Получение баланса по обеим картам и подготовка данных для перевода денег:
+        var dashboardPage = new DashboardPage();
+        var firstCardId = DataHelper.getFirstCardId();
+        var initialBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+        var secondCardId = DataHelper.getSecondCardId();
+        var initialBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+        var replenishmentPage = dashboardPage.transfer(firstCardId);
+        var transferInfo = DataHelper.getFirstCardTransferInfoPositive();
+        //Осуществление перевода денег:
+        replenishmentPage.transferBetweenOwnCards(transferInfo);
+        //Получение итогового баланса по обеим картам:
+        var finalBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+        var finalBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+        //Проверка зачисления на первую карту:
+        assertEquals(transferInfo.getAmount(), finalBalanceFirstCard - initialBalanceFirstCard);
+        //Проверка списания со второй карты:
+        assertEquals(transferInfo.getAmount(), initialBalanceSecondCard - finalBalanceSecondCard);
     }
 
-    @Test
-    void testShouldTransferMoneyFromFirstToSecondCard() {
-        sum = 100;
-        val topUpPage = dashboardPage.clickTopUp(dashboardPage.card2);
-        val cardNum = DataHelper.getFirstCard().getNumber();
-        val dashboardPage2 = topUpPage.successfulTopUp(Integer.toString(sum), cardNum);
-        endBalance1 = dashboardPage2.getBalance(dashboardPage2.card1);
-        endBalance2 = dashboardPage2.getBalance(dashboardPage2.card2);
-        assertEquals(begBalance1 - sum, endBalance1);
-        assertEquals(begBalance2 + sum, endBalance2);
+    @Test   //Перевод с первой карты на вторую
+    public void shouldTransferFromFirstToSecond() {
+        var dashboardPage = new DashboardPage();
+        var firstCardId = DataHelper.getFirstCardId();
+        var initialBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+        var secondCardId = DataHelper.getSecondCardId();
+        var initialBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+        var replenishmentPage = dashboardPage.transfer(secondCardId);
+        var transferInfo = DataHelper.getSecondCardTransferInfoPositive();
+        //Осуществление перевода денег:
+        replenishmentPage.transferBetweenOwnCards(transferInfo);
+        //Получение итогового баланса по обеим картам:
+        var finalBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+        var finalBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+        //Проверка списания с первой карты:
+        assertEquals(transferInfo.getAmount(), initialBalanceFirstCard - finalBalanceFirstCard);
+        //Проверка зачисления на вторую карту:
+        assertEquals(transferInfo.getAmount(), finalBalanceSecondCard - initialBalanceSecondCard);
     }
 
-//    @Test
-//    void testShouldNotTransferMoreThanAvailable() {
-//        sum = begBalance1 + 100;
-//        val topUpPage = dashboardPage.clickTopUp(dashboardPage.card2);
-//        val cardNum = DataHelper.getFirstCard().getNumber();
-//        topUpPage.unsuccessfulTopUp(Integer.toString(sum), cardNum);
+    //Негативные проверки:
+    @Test   //Попытка перевода со второй карты на первую с отрицательной суммой перевода
+    public void shouldTransferFromSecondToFirstNegativeAmount() {
+        //Получение баланса по обеим картам и подготовка данных для перевода денег:
+        var dashboardPage = new DashboardPage();
+        var firstCardId = DataHelper.getFirstCardId();
+        var initialBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+        var secondCardId = DataHelper.getSecondCardId();
+        var initialBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+        var replenishmentPage = dashboardPage.transfer(firstCardId);
+        var transferInfo = DataHelper.getFirstCardTransferInfoNegative();
+        //Осуществление перевода денег:
+        replenishmentPage.transferBetweenOwnCards(transferInfo);
+        //Получение итогового баланса по обеим картам:
+        var finalBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+        var finalBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+        //Проверка зачисления на первую карту:
+        assertEquals( - transferInfo.getAmount(), finalBalanceFirstCard - initialBalanceFirstCard);
+        //Проверка списания со второй карты:
+        assertEquals( - transferInfo.getAmount(), initialBalanceSecondCard - finalBalanceSecondCard);
+    }
+
+//    @Test   //Попытка перевода с первой карты на вторую с суммой перевода превышающей баланс первой карты
+//    public void shouldTransferFromFirstToSecondNegativeAmount() {
+//        //Получение баланса по обеим картам и подготовка данных для перевода денег:
+//        var dashboardPage = new DashboardPage();
+//        var firstCardId = DataHelper.getFirstCardId();
+//        var initialBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+//        var secondCardId = DataHelper.getSecondCardId();
+//        var initialBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+//        var replenishmentPage = dashboardPage.transfer(secondCardId);
+//        var transferInfo = DataHelper.getSecondCardTransferInfoNegative();
+//        //Попытка осуществление перевода денег:
+//        replenishmentPage.transferBetweenOwnCards(transferInfo);
+//        //Получение итогового баланса по обеим картам:
+//        var finalBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
+//        var finalBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
+//        //Проверка на изменение баланса первой карты:
+//        assertEquals(initialBalanceFirstCard, finalBalanceFirstCard);
+//        //Проверка на изменение баланса второй карты:
+//        assertEquals(initialBalanceSecondCard, finalBalanceSecondCard);
+//
 //    }
 }

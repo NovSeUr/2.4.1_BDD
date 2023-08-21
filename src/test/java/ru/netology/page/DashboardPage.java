@@ -1,35 +1,41 @@
 package ru.netology.page;
 
-import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
+import ru.netology.data.DataHelper;
 
+import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.$$;
 
 public class DashboardPage {
-    private SelenideElement heading = $("[data-test-id=dashboard]");
-    private ElementsCollection topUpButtons = $$("button[data-test-id=action-deposit]");
-    public SelenideElement card1 = $("div[data-test-id='92df3f1c-a033-48e6-8390-206f6b1f56c0']");
-    public SelenideElement card2 = $("div[data-test-id='0f3f5c2a-249e-4c3d-8287-09f7a039391d']");
-
+    private final SelenideElement heading = $("[data-test-id=dashboard]");
+    private final SelenideElement title = $("h1.heading");
+    private final String balanceStart = "баланс:";
+    private final String balanceFinish = "р.";
 
     public DashboardPage() {
         heading.shouldBe(visible);
+        title.shouldHave(text("Ваши карты"));
     }
 
-    public TopUpPage clickTopUp(SelenideElement card) {
-
-        card.find("button[data-test-id=action-deposit]").click();
-        return new TopUpPage();
+    private int extractBalance(String cardInfo) {
+        //Вырезается нужная часть строки:
+        var value = cardInfo.substring
+                //Начальная позиция (исключительно) плюс смещение:
+                        (cardInfo.indexOf(balanceStart) + balanceStart.length(),
+                                //Конечная позиция (включительно):
+                                cardInfo.indexOf(balanceFinish))
+                //Обрезка начального и конечного пробелов:
+                .trim();
+        return Integer.parseInt(value);
     }
 
-    public int getBalance(SelenideElement card) {
-        String [] text = card.innerText().split(" ");
-        return Integer.parseInt(text[5]);
+    public int getCardBalance(DataHelper.CardId cardId) {
+        return extractBalance($("[data-test-id='" + cardId.getId() + "']").getText());
     }
 
-
-
-
+    public ReplenishmentPage transfer(DataHelper.CardId cardId) {
+        $("[data-test-id='" + cardId.getId() + "'] [data-test-id=action-deposit]").click();
+        return new ReplenishmentPage();
+    }
 }
