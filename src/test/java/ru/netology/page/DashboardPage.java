@@ -19,13 +19,9 @@ public class DashboardPage {
     }
 
     private int extractBalance(String cardInfo) {
-        //Вырезается нужная часть строки:
         var value = cardInfo.substring
-                //Начальная позиция (исключительно) плюс смещение:
                         (cardInfo.indexOf(balanceStart) + balanceStart.length(),
-                                //Конечная позиция (включительно):
                                 cardInfo.indexOf(balanceFinish))
-                //Обрезка начального и конечного пробелов:
                 .trim();
         return Integer.parseInt(value);
     }

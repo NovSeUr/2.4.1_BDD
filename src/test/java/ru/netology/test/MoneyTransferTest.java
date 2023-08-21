@@ -55,13 +55,10 @@ class MoneyTransferTest {
         //Получение итогового баланса по обеим картам:
         var finalBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
         var finalBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
-        //Проверка списания с первой карты:
         assertEquals(transferInfo.getAmount(), initialBalanceFirstCard - finalBalanceFirstCard);
-        //Проверка зачисления на вторую карту:
         assertEquals(transferInfo.getAmount(), finalBalanceSecondCard - initialBalanceSecondCard);
     }
 
-    //Негативные проверки:
     @Test   //Попытка перевода со второй карты на первую с отрицательной суммой перевода
     public void shouldTransferFromSecondToFirstNegativeAmount() {
         //Получение баланса по обеим картам и подготовка данных для перевода денег:
@@ -77,9 +74,7 @@ class MoneyTransferTest {
         //Получение итогового баланса по обеим картам:
         var finalBalanceFirstCard = dashboardPage.getCardBalance(firstCardId);
         var finalBalanceSecondCard = dashboardPage.getCardBalance(secondCardId);
-        //Проверка зачисления на первую карту:
         assertEquals( - transferInfo.getAmount(), finalBalanceFirstCard - initialBalanceFirstCard);
-        //Проверка списания со второй карты:
         assertEquals( - transferInfo.getAmount(), initialBalanceSecondCard - finalBalanceSecondCard);
     }
 
